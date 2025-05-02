@@ -138,12 +138,14 @@ export default function Home() {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-cover bg-center bg-fixed flex flex-col transition-all duration-1000"
-      style={{
-        backgroundImage: `url("${backgroundImages[currentBgIndex].url}")`,
-      }}
-    >
+    <div
+    style={{
+      backgroundImage: `url("${backgroundImages[currentBgIndex].url}")`,
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: '100% 100%',
+    }}
+  >
+  
       <div className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="text-center mb-8 p-8 inline-block mx-auto mt-16">
