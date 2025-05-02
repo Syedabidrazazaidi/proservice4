@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Search, Zap, Droplets, Hammer, Star, Wrench } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { ServiceProvider } from '../lib/supabase';
-import worker1 from './worker1.jpg';
+import ProfileModal from '../components/ProfileModal';
+import worker8 from './worker8.jpg';
 import worker2 from './worker2.jpg';
-import worker4 from './worker4.jpg';
+import worker7 from './worker7.jpg';
 
 const backgroundImages = [
   {
-    url: worker1,
+    url: worker8,
     description: "Diverse group of skilled Indian professionals"
   },
   {
-    url: worker4,
+    url: worker7,
     description: "Tools and equipment"
   },
   {
@@ -44,6 +45,7 @@ export default function Home() {
   const [professions, setProfessions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -137,20 +139,26 @@ export default function Home() {
     setShowSuggestions(false);
   };
 
+  const handleContactClick = (e: React.MouseEvent, phone: string) => {
+    e.stopPropagation();
+    window.location.href = `tel:${phone}`;
+  };
+
   return (
     <div
-    style={{
-      backgroundImage: `url("${backgroundImages[currentBgIndex].url}")`,
-      backgroundRepeat: 'no-repeat',
-      backgroundSize: '100% 100%',
-    }}
-  >
-  
+      style={{
+        backgroundImage: `url("${backgroundImages[currentBgIndex].url}")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '100% 100%',
+      }}
+    >
       <div className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
-        <div className="text-center mb-8 p-8 inline-block mx-auto mt-16">
-          <h2 className="text-4xl font-bold text-white mb-4">Find Local Service Providers</h2>
-          <p className="text-xl text-white">{backgroundImages[currentBgIndex].description}</p>
+        <div className="flex justify-center mt-16 mb-8 p-8">
+          <div className="text-center inline-block">
+            <h2 className="text-4xl font-bold text-white mb-4">Find Local Service Providers</h2>
+            <p className="text-xl text-white">{backgroundImages[currentBgIndex].description}</p>
+          </div>
         </div>
 
         {/* Search and Filter Section */}
@@ -170,7 +178,7 @@ export default function Home() {
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             />
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-black/20 rounded-lg shadow-lg border border-white/30 max-h-60 overflow-auto">
+              <div className="absolute z-10 w-full mt-1 bg-black/20 backdrop-blur-sm rounded-lg shadow-lg border border-white/30 max-h-60 overflow-auto">
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={index}
@@ -212,45 +220,65 @@ export default function Home() {
         ) : workers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {workers.map(worker => (
-              <div key={worker.id} className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:-translate-y-1">
+              <div 
+                key={worker.id} 
+                className="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all transform hover:-translate-y-1 cursor-pointer"
+                onClick={() => setSelectedProvider(worker)}
+              >
                 <div className="h-48 overflow-hidden">
                   <img 
                     src={worker.photo_url || "https://images.unsplash.com/photo-1587778082149-bd5b1bf5d3fa?w=800&auto=format&fit=crop&q=60"} 
                     alt={worker.full_name}
-                    className="w-full h-full object-cover transition-transform hover:scale-110"
+                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
                   />
                 </div>
                 <div className="p-6">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-4">
                     <div className="p-2 bg-blue-100 rounded-lg">
                       {getServiceIcon(worker.profession)}
                     </div>
                     <span className="text-lg font-semibold text-gray-900">{worker.profession}</span>
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{worker.full_name}</h3>
-                  <p className="text-gray-600 mb-2">{worker.experience_years} years experience</p>
-                  <p className="text-sm text-gray-500 mb-1">
-                    <span className="font-medium">Age:</span> {worker.age} years
-                  </p>
-                  <p className="text-sm text-gray-500 mb-1">
-                    <span className="font-medium">Location:</span> {worker.location}
-                  </p>
-                  <p className="text-sm text-gray-500 mb-1">
-                    <span className="font-medium">Phone:</span> {worker.phone}
-                  </p>
-                  {worker.specialization && (
-                    <p className="text-sm text-gray-500 mb-1">
-                      <span className="font-medium">Specialization:</span> {worker.specialization}
+                  <div className="flex items-center gap-1 mb-3">
+                    <Star className="w-5 h-5 text-yellow-400 fill-current" />
+                    <span className="text-gray-700">{worker.experience_years} years experience</span>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Age:</span> {worker.age} years
                     </p>
-                  )}
-                  {worker.availability && (
-                    <p className="text-sm text-gray-500 mb-4">
-                      <span className="font-medium">Availability:</span> {worker.availability}
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Location:</span> {worker.location}
                     </p>
-                  )}
-                  <button className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg">
-                    Contact Now
-                  </button>
+                    {worker.specialization && (
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Specialization:</span> {worker.specialization}
+                      </p>
+                    )}
+                    {worker.availability && (
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Availability:</span> {worker.availability}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-xl hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedProvider(worker);
+                      }}
+                    >
+                      View Profile
+                    </button>
+                    <button 
+                      className="flex-1 bg-green-500 text-white py-3 px-4 rounded-xl hover:bg-green-600 transition-colors shadow-md hover:shadow-lg"
+                      onClick={(e) => handleContactClick(e, worker.phone)}
+                    >
+                      Contact Now
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -259,6 +287,14 @@ export default function Home() {
           <div className="text-center py-8 text-white">
             No service providers found. Try a different search term or category.
           </div>
+        )}
+
+        {/* Profile Modal */}
+        {selectedProvider && (
+          <ProfileModal
+            provider={selectedProvider}
+            onClose={() => setSelectedProvider(null)}
+          />
         )}
       </div>
     </div>
