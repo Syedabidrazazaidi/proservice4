@@ -44,7 +44,7 @@ export default function Layout() {
                 <div className="bg-blue-500 p-2 rounded-lg">
                   <Wrench className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-3xl font-bold text-white">ProServices</h1>
+                <h1 className="text-3xl font-bold text-white">ProWorker</h1>
               </Link>
 
               {/* Desktop Navigation */}
