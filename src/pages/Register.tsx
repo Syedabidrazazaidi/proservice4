@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Wrench } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 const professions = [
   "Electrical Services",
   "Plumbing",
@@ -32,6 +35,16 @@ export default function Register() {
 
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  const validateFile = (file: File): string | null => {
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      return 'Invalid file type. Please upload a JPG, PNG, or WebP image.';
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return 'File size too large. Maximum size is 5MB.';
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -41,8 +54,39 @@ export default function Register() {
       // Generate a unique ID for the service provider
       const id = crypto.randomUUID();
 
-      // Create service provider profile first
-      const { error: profileError } = await supabase
+      let photoUrl = null;
+
+      // Upload photo if provided
+      if (formData.photo) {
+        const fileError = validateFile(formData.photo);
+        if (fileError) {
+          setError(fileError);
+          setLoading(false);
+          return;
+        }
+
+        const fileExt = formData.photo.name.split('.').pop();
+        const fileName = `${id}.${fileExt}`;
+
+        const { error: uploadError, data } = await supabase.storage
+          .from('profile-photos')
+          .upload(fileName, formData.photo, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-photos')
+          .getPublicUrl(fileName);
+
+        photoUrl = publicUrl;
+      }
+
+      // Insert provider data
+      const { error: insertError } = await supabase
         .from('service_providers')
         .insert([
           {
@@ -55,40 +99,15 @@ export default function Register() {
             age: parseInt(formData.age),
             phone: formData.phone,
             location: formData.location,
-            photo_url: null // We'll update this after uploading the photo
+            photo_url: photoUrl
           }
         ]);
 
-      if (profileError) throw profileError;
+      if (insertError) throw insertError;
 
-      // Upload photo if exists
-      if (formData.photo) {
-        const fileExt = formData.photo.name.split('.').pop();
-        const fileName = `${id}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('profile-photos')
-          .upload(fileName, formData.photo);
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('profile-photos')
-          .getPublicUrl(fileName);
-
-        // Update the service provider with the photo URL
-        const { error: updateError } = await supabase
-          .from('service_providers')
-          .update({ photo_url: publicUrl })
-          .eq('id', id);
-
-        if (updateError) throw updateError;
-      }
-
-      // Navigate to services page with refresh flag
+      // Redirect on success
       navigate('/services', { state: { refresh: true } });
-      
+
     } catch (err) {
       console.error('Registration error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred during registration');
@@ -108,12 +127,17 @@ export default function Register() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const error = validateFile(file);
+      if (error) {
+        setError(error);
+        return;
+      }
+
       setFormData(prev => ({
         ...prev,
         photo: file
       }));
-      
-      // Create preview URL
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoPreview(reader.result as string);
@@ -131,7 +155,7 @@ export default function Register() {
           </div>
         </div>
         <h2 className="text-2xl font-bold text-center mb-8">Register as Service Provider</h2>
-        
+
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
             {error}
@@ -139,7 +163,6 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Photo Upload */}
           <div className="flex flex-col items-center space-y-4">
             <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 relative">
               {photoPreview ? (
@@ -158,7 +181,7 @@ export default function Register() {
               type="file"
               id="photo"
               name="photo"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               onChange={handlePhotoChange}
               className="hidden"
             />
@@ -168,6 +191,9 @@ export default function Register() {
             >
               Upload Photo
             </label>
+            <p className="text-sm text-gray-500">
+              Maximum file size: 5MB. Supported formats: JPG, PNG, WebP
+            </p>
           </div>
 
           <div>
